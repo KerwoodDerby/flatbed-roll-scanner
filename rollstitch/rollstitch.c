@@ -69,6 +69,10 @@ struct cis_header_s {
 
 #define XMARGIN 800
 #define COARSESTEP 5/*20*/
+#define YSEARCHRANGE 80
+#define YSTARTINIT 800
+#define MINYSTART 700
+#define MAXYSTART 950
 int NumRowsSkipped = 0;
 //FILE *binfile;
 float thres_trim = 0.;
@@ -92,6 +96,7 @@ int main(int argc, char* argv[]) {
 	int PreviousXOffset = 0;
 	int BiColorOption = 0;
 	int tempo = 70;
+	int LastYAdvance;
 
 	if (argc != 6) {
 		printf("Usage: rollstitch bicolor thresh_trim tempo filenameroot title\n");
@@ -149,7 +154,7 @@ int main(int argc, char* argv[]) {
 	if (retval == 0) return -4;
 
 //binfile = fopen("mjj.gray", "wb+");
-
+	LastYAdvance = YSTARTINIT;
     while (NotDone) {
 
 		TIFFGetField(Image2.handle, TIFFTAG_IMAGEWIDTH,  &Image2.width);
@@ -165,10 +170,12 @@ int main(int argc, char* argv[]) {
 		minsum = 0xffffffff;
 		IndexOfMinYCoarse = 0;
 //		for (i=35*Image1.res/10; i<(5*Image1.res); i+=COARSESTEP) {
-		for (i=38*Image1.res/10; i<(5*Image1.res); i+=COARSESTEP) {
+//		for (i=38*Image1.res/10; i<(5*Image1.res); i+=COARSESTEP) {
+//		for (i=40*Image1.res/10; i<(5*Image1.res); i+=COARSESTEP) {
 //		for (i=35*Image1.res/10; i<(4.5*Image1.res); i+=COARSESTEP) {
 //		for (i=3*Image1.res; i<(45*Image1.res/10); i+=COARSESTEP) {
 //		for (i=30*Image1.res/10; i<(6*Image1.res); i+=COARSESTEP) {
+		for (i=LastYAdvance-YSEARCHRANGE; i<(LastYAdvance+YSEARCHRANGE); i+=COARSESTEP) {
 			sum = SumSquares(&Image1, &Image2, 0, i, Image1.width, 400);
 			if (minsum > sum) {
 				minsum = sum;
@@ -194,7 +201,10 @@ int main(int argc, char* argv[]) {
 				IndexOfMinX = i;
 			}
 		}
-		printf("%d: y index = %d, x index = %d\n", FileNumber-1, IndexOfMinY, IndexOfMinX);
+		printf("%d: y index = %d, x index = %d, minsum = %d\n", FileNumber-1, IndexOfMinY, IndexOfMinX, minsum);
+		LastYAdvance = IndexOfMinY;
+		if (LastYAdvance < MINYSTART) LastYAdvance = MINYSTART;
+		if (LastYAdvance > MAXYSTART) LastYAdvance = MAXYSTART;
 		//
 		//  Check to see if the next file exists
 		//
@@ -250,6 +260,7 @@ int main(int argc, char* argv[]) {
     cis_header.LineCount = RowsWritten;
     fseek(cisfile, 0, SEEK_SET);
     fwrite((void *)&cis_header, sizeof(struct cis_header_s), 1, cisfile);
+    printf("Punched section is ~%.1f feet long.\n", (double)RowsWritten/cis_header.VerticalDPI/12.);
     exit(0);
 }
 
@@ -292,13 +303,13 @@ uint32_t SumSquares(struct image_vars_t *i1,
 #define LUMIN_THRESH 100.
 #define MAXRGB(R,G,B) (R > ((G>B) ? G : B) ? R : ((G>B) ? G : B))
 #define MINRGB(R,G,B) (R < ((G<B) ? G : B) ? R : ((G<B) ? G : B))
-#define VELLUM_MIN 40. /*60.*/
+#define VELLUM_MIN 150. /*50.*/ /*60.*/
 #define VELLUM_SAT 0.2 /*0.3*/
 
 int EncodeBufferToCIS(struct image_vars_t *im, int32_t xoff1,  int32_t xoff2,  int32_t yoff, int nlines, int BiColor, FILE *outfile) {
 	uint8_t r, g, b;
 	double dr, dg, db, mag, col_dist;
-	double ThresholdRadius = 0.25;//0.30;
+	double ThresholdRadius = 0.15;//0.25;//0.30;
 	double AdaptThresh;
 	double Hysteresis = 0.07;
 	int CurrentState = 0;
