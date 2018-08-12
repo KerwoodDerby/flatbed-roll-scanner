@@ -309,7 +309,8 @@ uint32_t SumSquares(struct image_vars_t *i1,
 int EncodeBufferToCIS(struct image_vars_t *im, int32_t xoff1,  int32_t xoff2,  int32_t yoff, int nlines, int BiColor, FILE *outfile) {
 	uint8_t r, g, b;
 	double dr, dg, db, mag, col_dist;
-	double ThresholdRadius = 0.15;//0.25;//0.30;
+	double ThresholdRadius = 0.13;//0.06;//0.25;//0.30;
+//	double ThresholdRadius = 0.09; // for "green" coated paper
 	double AdaptThresh;
 	double Hysteresis = 0.07;
 	int CurrentState = 0;
