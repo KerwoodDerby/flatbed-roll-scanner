@@ -303,13 +303,14 @@ uint32_t SumSquares(struct image_vars_t *i1,
 #define LUMIN_THRESH 100.
 #define MAXRGB(R,G,B) (R > ((G>B) ? G : B) ? R : ((G>B) ? G : B))
 #define MINRGB(R,G,B) (R < ((G<B) ? G : B) ? R : ((G<B) ? G : B))
-#define VELLUM_MIN 150. /*50.*/ /*60.*/
-#define VELLUM_SAT 0.2 /*0.3*/
+#define VELLUM_MIN 150. /*150.*/ /*50.*/ /*60.*/
+#define VELLUM_SAT 0.18 /*0.2*/ /*0.3*/
 
 int EncodeBufferToCIS(struct image_vars_t *im, int32_t xoff1,  int32_t xoff2,  int32_t yoff, int nlines, int BiColor, FILE *outfile) {
 	uint8_t r, g, b;
 	double dr, dg, db, mag, col_dist;
-	double ThresholdRadius = 0.13;//0.06;//0.25;//0.30;
+//	double ThresholdRadius = 0.13;//0.06;//0.25;//0.30;
+    double ThresholdRadius = 0.10; // for Meloto green inking
 //	double ThresholdRadius = 0.09; // for "green" coated paper
 	double AdaptThresh;
 	double Hysteresis = 0.07;
@@ -424,7 +425,12 @@ int EncodeBufferToCIS(struct image_vars_t *im, int32_t xoff1,  int32_t xoff2,  i
 //				if ((mag >= MinMag) && (col < (im->width-COLGUTTER-HIGHEXCLUDE))) {
 				if ((col < (im->width-COLGUTTER-HIGHEXCLUDE))) {
 					if (VellumFlag) {
-						CurrentState = ((mag < VELLUM_MIN) ? 1 : 0);
+						maxcomp = MAXRGB(r,g,b);
+						mincomp = MINRGB(r,g,b);
+						sat = (double)(maxcomp - mincomp) / (double)maxcomp;
+//						CurrentState = ((mag < VELLUM_MIN) ? 1 : 0);
+//						CurrentState = (((mag < VELLUM_MIN) && (sat < VELLUM_SAT + (float)thres_trim/10.)) ? 1 : 0);
+						CurrentState = (((mag < VELLUM_MIN) && (sat < VELLUM_SAT)) ? 1 : 0);
 					} else {
 						CurrentState = ((col_dist <= AdaptThresh) ? 1 : 0);
 					}
@@ -442,10 +448,10 @@ int EncodeBufferToCIS(struct image_vars_t *im, int32_t xoff1,  int32_t xoff2,  i
 				if (BiColor) {
 //					CurrentMarkState = (px.s.red > LUMIN_THRESH ? 1 : 0);
 					if (VellumFlag) {
-						maxcomp = MAXRGB(r,g,b);
-						mincomp = MINRGB(r,g,b);
-						sat = (double)(maxcomp - mincomp) / (double)maxcomp;
-						CurrentMarkState = ((sat < VELLUM_SAT + (float)thres_trim/10.) ? 1 : 0);
+//						maxcomp = MAXRGB(r,g,b);
+//						mincomp = MINRGB(r,g,b);
+//						sat = (double)(maxcomp - mincomp) / (double)maxcomp;
+						CurrentMarkState = ((sat < VELLUM_SAT + (float)thres_trim/100.) ? 1 : 0);
 					} else {
 						CurrentMarkState = (mag > (RGBMAG - LUMIN_THRESH + thres_trim) ? 1 : 0);
 					}
